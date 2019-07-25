@@ -1,4 +1,3 @@
-import { Handler } from './router.ts'
 import { Request } from './request.ts'
 import { Response } from './response.ts'
 
@@ -11,14 +10,21 @@ import { Response } from './response.ts'
 export interface IsMiddleware {
 
     /**
-     * Handles the middleware code.
+     * Runs before the route handler.
      *
      * @param {Request} request
-     * @param {Handler} next
-     * @returns {Response}
-     * @memberof IsMiddleware
+     * @memberof Log
      */
-    handle(request: Request, next: Handler): Response
+    before(request: Request): void
+
+    /**
+     * Runs after the route handler.
+     *
+     * @param {Request} request
+     * @param {Response} response
+     * @memberof Log
+     */
+    after(request: Request, response: Response): void
 
 }
 
@@ -52,16 +58,24 @@ export interface HTTPMiddleware {
 export class Middleware implements IsMiddleware {
 
     /**
-     * Handles the middleware code.
+     * Runs before the route handler.
      *
      * @param {Request} request
-     * @param {Handler} next
-     * @returns {Response}
-     * @memberof Middleware
+     * @memberof Log
      */
-    handle(request: Request, next: Handler): Response {
+    before(request: Request) {
         // ...
-        return next(request)
+    }
+
+    /**
+     * Runs after the route handler.
+     *
+     * @param {Request} request
+     * @param {Response} response
+     * @memberof Log
+     */
+    after(request: Request, response: Response) {
+        // ...
     }
 
 }

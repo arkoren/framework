@@ -51,10 +51,12 @@ export class App {
      * Registers the given routes to the application.
      *
      * @param {(route: Router) => void} routes
+     * @returns {App}
      * @memberof App
      */
-    public routes(routes: (route: Router) => void) {
+    public routes(routes: (route: Router) => void): App {
         routes(this.router)
+        return this
     }
 
     /**
@@ -120,7 +122,7 @@ export class App {
         )
         const [route, parameters] = this.router.matchRoute(request)
         if (route) {
-            const response = route.handler(request, ...parameters)
+            const response = route.handle(request, parameters)
             this.handleResponse(req, response)
         } else {
             req.respond({ body: new TextEncoder().encode('404') })

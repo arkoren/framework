@@ -1,6 +1,6 @@
 import { Request, Method } from './request.ts'
 import { Response } from './response.ts'
-import { Middleware } from './middleware.ts'
+import { HTTPMiddleware, IsMiddleware } from './middleware.ts'
 
 /**
  * Define a route handler.
@@ -36,6 +36,26 @@ class Parameter {
         this.name = name
     }
 
+}
+
+/**
+ * Represents the route options.
+ *
+ * @export
+ * @interface RouteOptions
+ */
+export interface RouteOptions {
+    middlewares: IsMiddleware[]
+}
+
+/**
+ * Represents the router options.
+ *
+ * @export
+ * @interface RouteOptions
+ */
+export interface RouterOptions {
+    middleware?: HTTPMiddleware | HTTPMiddleware[]
 }
 
 /**
@@ -80,12 +100,12 @@ export class Route {
     handler: Handler
 
     /**
-     * Route middlewares.
+     * Stores the options of the route.
      *
-     * @type {Middleware[]}
+     * @type {RouteOptions}
      * @memberof Route
      */
-    middlewares: Middleware[]
+    options: RouteOptions
 
     /**
      * Segmentates a given path.
@@ -97,6 +117,30 @@ export class Route {
      */
     static segmentate(path: string): string[] {
         return path.split('/').slice(1)
+    }
+
+    /**
+     * Transforms the router options into route options.
+     *
+     * @static
+     * @param {RouterOptions} options
+     * @returns {RouteOptions}
+     * @memberof Route
+     */
+    static optionsFrom(options: RouterOptions): RouteOptions {
+        return {
+            middlewares: options.middleware
+                ? (Array.isArray(options.middleware)
+                    ? options.middleware.map(m => new m)
+                    : [new options.middleware])
+                : []
+        }
+    }
+
+    static mergeOptions(first: RouteOptions, second: RouteOptions): RouteOptions {
+        return {
+            middlewares: [...first.middlewares, ...second.middlewares]
+        }
     }
 
     /**
@@ -114,19 +158,20 @@ export class Route {
     }
 
     /**
-     * Creates a new route.
+     * Creates an instance of Route.
      *
      * @param {Method} method
      * @param {string} path
      * @param {Handler} handler
+     * @param {[RouterOptions, RouterOptions]} options
      * @memberof Route
      */
-    constructor(method: Method, path: string, handler: Handler, middlewares: Middleware[] = []) {
+    constructor(method: Method, path: string, handler: Handler, options: [RouterOptions, RouterOptions]) {
         this.method = method
         this.path = path
         this.buildSegments()
         this.handler = handler
-        this.middlewares = middlewares
+        this.options = Route.mergeOptions(Route.optionsFrom(options[0]), Route.optionsFrom(options[1]))
     }
 
     /**
@@ -158,6 +203,28 @@ export class Route {
         return [true, parameters]
     }
 
+    /**
+     * Handles the route request.
+     *
+     * @param {Request} request
+     * @param {string[]} parameters
+     * @returns {Response}
+     * @memberof Route
+     */
+    handle(request: Request, parameters: string[]): Response {
+        // Execute the before middlewares.
+        for (const middleware of this.options.middlewares) {
+            middleware.before(request)
+        }
+        // Execute the route handler.
+        const response = this.handler(request, ...parameters)
+        // Execute the after middlewares.
+        for (const middleware of this.options.middlewares) {
+            middleware.after(request, response)
+        }
+        return response
+    }
+
 }
 
 /**
@@ -167,6 +234,15 @@ export class Route {
  * @class Router
  */
 export class Router {
+
+    /**
+     * Stores the router options that will be
+     * applied to each route.
+     *
+     * @type {RouteOptions}
+     * @memberof Router
+     */
+    options: RouterOptions
 
     /**
      * Stores all the routes of the application.
@@ -186,10 +262,20 @@ export class Router {
      * @returns {Route}
      * @memberof Router
      */
-    private addRoute(method: Method, path: string, handler: Handler): Route {
-        const route = new Route(method, path, handler)
+    private addRoute(method: Method, path: string, handler: Handler, options: RouterOptions): Route {
+        const route = new Route(method, path, handler, [this.options, options])
         this.routes.push(route)
         return route
+    }
+
+    /**
+     * Creates an instance of Router.
+     *
+     * @param {RouteOptions} [options={}]
+     * @memberof Router
+     */
+    constructor(options: RouterOptions = {}) {
+        this.options = options
     }
 
     /**
@@ -218,8 +304,8 @@ export class Router {
      * @returns {Route}
      * @memberof Router
      */
-    get(path: string, handler: Handler): Route {
-        return this.addRoute(Method.Get, path, handler)
+    get(path: string, handler: Handler, options: RouterOptions = {}): Route {
+        return this.addRoute(Method.Get, path, handler, options)
     }
 
     /**
@@ -230,8 +316,24 @@ export class Router {
      * @returns {Route}
      * @memberof Router
      */
-    post(path: string, handler: Handler): Route {
-        return this.addRoute(Method.Post, path, handler)
+    post(path: string, handler: Handler, options: RouterOptions = {}): Route {
+        return this.addRoute(Method.Post, path, handler, options)
+    }
+
+    /**
+     * Creates a new group of routes with the given options.
+     *
+     * @param {RouteOptions} options
+     * @param {(route: Router) => void} callback
+     * @returns {Router}
+     * @memberof Router
+     */
+    group(options: RouterOptions, callback: (route: Router) => void) {
+        const router = new Router({ ...this.options, ...options })
+        callback(router)
+        for (const route of router.routes) {
+            this.routes.push(route)
+        }
     }
 
 }
