@@ -1,5 +1,5 @@
 /**
- * Returns the plural of an english word.
+ * Returns the plural of an English word.
  *
  * @export
  * @param {string} word
@@ -90,7 +90,7 @@ export function plural(word: string, amount?: number): string {
 }
 
 /**
- * Returns the singular of an english word.
+ * Returns the singular of an English word.
  *
  * @export
  * @param {string} word

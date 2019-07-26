@@ -39,10 +39,7 @@ export interface HTTPMiddleware {
     /**
      * Creates a new middleware instance.
      *
-     * @param {Request} request
-     * @param {Handler} next
-     * @returns {Response}
-     * @memberof HTTPMiddleware
+     * @returns {HTTPMiddleware}
      */
     new(): IsMiddleware
 

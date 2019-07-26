@@ -1,14 +1,7 @@
 import { Request, Method } from './request.ts'
 import { Response } from './response.ts'
 import { HTTPMiddleware, IsMiddleware } from './middleware.ts'
-
-/**
- * Define a route handler.
- *
- * @export
- * @type {Handler}
- */
-export type Handler = (req: Request, ...parameters: string[]) => Response
+import { Handler } from './kernel.ts'
 
 /**
  * Represents a parameter.
@@ -137,6 +130,15 @@ export class Route {
         }
     }
 
+    /**
+     * Merges two route options.
+     *
+     * @static
+     * @param {RouteOptions} first
+     * @param {RouteOptions} second
+     * @returns {RouteOptions}
+     * @memberof Route
+     */
     static mergeOptions(first: RouteOptions, second: RouteOptions): RouteOptions {
         return {
             middlewares: [...first.middlewares, ...second.middlewares]

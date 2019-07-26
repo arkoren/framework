@@ -1,7 +1,23 @@
-import { Router, Response, Status } from './http.ts'
+import {
+    Method,
+    Router,
+    Status,
+    NotFound,
+    Response,
+    response,
+    HTTPKernel,
+    HTTPRequest,
+    HTTPResponse,
+    isHTTPKernel,
+} from './http.ts'
 import { serve, ServerRequest } from 'https://deno.land/std@v0.12.0/http/server.ts'
-import { HTTPRequest, Method } from './http/request.ts'
-import { HTTPResponse } from './http/response.ts'
+
+export interface AppOptions {
+    host: string
+    port: number
+    routes: (route: Router) => void
+    http_kernel: isHTTPKernel
+}
 
 /**
  * Represents a web application.
@@ -28,12 +44,12 @@ export class App {
     port: number
 
     /**
-     * Stores the application router.
+     * Stores the HTTPKernel used by this app.
      *
-     * @type {Router}
+     * @type {HTTPKernel}
      * @memberof App
      */
-    router: Router = new Router()
+    http_kernel: HTTPKernel
 
     /**
      * Creates a new application.
@@ -42,21 +58,10 @@ export class App {
      * @param {number} port
      * @memberof App
      */
-    constructor(host: string, port: number) {
-        this.host = host
-        this.port = port
-    }
-
-    /**
-     * Registers the given routes to the application.
-     *
-     * @param {(route: Router) => void} routes
-     * @returns {App}
-     * @memberof App
-     */
-    public routes(routes: (route: Router) => void): App {
-        routes(this.router)
-        return this
+    constructor(options: AppOptions) {
+        this.host = options.host
+        this.port = options.port
+        this.http_kernel = new options.http_kernel(options.routes)
     }
 
     /**
@@ -85,23 +90,7 @@ export class App {
      * @memberof App
      */
     private handleResponse(req: ServerRequest, res: Response) {
-        if (res instanceof HTTPResponse) {
-            return this.respond(req, res)
-        }
-        let response: HTTPResponse
-        switch (typeof res) {
-            case 'string': {
-                response = new HTTPResponse(Status.OK, new TextEncoder().encode(res))
-                response.headers.set('Content-Type', 'text/html')
-                break
-            }
-            default: {
-                response = new HTTPResponse(Status.OK, new TextEncoder().encode(JSON.stringify(res)))
-                response.headers.set('Content-Type', 'application/json')
-                break
-            }
-        }
-        this.respond(req, response)
+        this.respond(req, response(res))
     }
 
     /**
@@ -120,12 +109,17 @@ export class App {
             req.headers,
             parseFloat(`${req.protoMajor}.${req.protoMinor}`)
         )
-        const [route, parameters] = this.router.matchRoute(request)
-        if (route) {
-            const response = route.handle(request, parameters)
+        try {
+            const response = this.http_kernel.handle(request)
             this.handleResponse(req, response)
-        } else {
-            req.respond({ body: new TextEncoder().encode('404') })
+        } catch (error) {
+            if (error instanceof NotFound) {
+                // Route not found.
+                this.handleResponse(req, response(error.message, Status.NotFound))
+            } else {
+                // Another kind of error. Probably developer's code.
+                this.handleResponse(req, response(error.message, Status.InternalServerError))
+            }
         }
     }
 

@@ -1,6 +1,34 @@
 import { Status } from './status.ts'
 
 /**
+ * Helper to create a new HTTP response.
+ *
+ * @export
+ * @param {Response} res
+ * @param {Status} [status=Status.OK]
+ * @returns {HTTPResponse}
+ */
+export function response(res: Response, status: Status = Status.OK): HTTPResponse {
+    if (res instanceof HTTPResponse) {
+        return res
+    }
+    let response: HTTPResponse
+    switch (typeof res) {
+        case 'string': {
+            response = new HTTPResponse(status, new TextEncoder().encode(res))
+            response.headers.set('Content-Type', 'text/html')
+            break
+        }
+        default: {
+            response = new HTTPResponse(status, new TextEncoder().encode(JSON.stringify(res)))
+            response.headers.set('Content-Type', 'application/json')
+            break
+        }
+    }
+    return response
+}
+
+/**
  * Represents an HTTP Response.
  *
  * @export
