@@ -8,18 +8,18 @@ export enum Method {
 
     // The GET method requests a representation of the specified resource.
     // Requests using GET should only retrieve data.
-    Get     = 'GET',
+    Get = 'GET',
     // The HEAD method asks for a response identical to that of a GET request,
     // but without the response body.
-    Head    = 'HEAD',
+    Head = 'HEAD',
     // The POST method is used to submit an entity to the specified resource,
     // often causing a change in state or side effects on the server.
-    Post    = 'POST',
+    Post = 'POST',
     // The PUT method replaces all current representations of the target resource
     // with the request payload.
-    Put     = 'PUT',
+    Put = 'PUT',
     // The DELETE method deletes the specified resource.
-    Delete  = 'DELETE',
+    Delete = 'DELETE',
     // The CONNECT method establishes a tunnel to the server identified by
     // the target resource.
     Connect = 'CONNECT',
@@ -28,9 +28,9 @@ export enum Method {
     Options = 'OPTIONS',
     // The TRACE method performs a message loop-back test along the path
     // to the target resource.
-    Trace   = 'TRACE',
+    Trace = 'TRACE',
     // The PATCH method is used to apply partial modifications to a resource.
-    Patch   = 'PATCH'
+    Patch = 'PATCH'
 
 }
 
@@ -92,12 +92,18 @@ export class HTTPRequest {
      * @param {number} [version=1.1]
      * @memberof HTTPRequest
      */
-    constructor(method: Method, URI: string, body: Uint8Array = new Uint8Array, headers: Headers = new Headers, version: number = 1.1) {
-        this.method     = method
-        this.URI        = URI
-        this.body       = body
-        this.headers    = headers
-        this.version    = version
+    constructor(
+        method: Method,
+        URI: string,
+        body: Uint8Array = new Uint8Array,
+        headers: Headers = new Headers,
+        version: number = 1.1
+    ) {
+        this.method = method
+        this.URI = URI
+        this.body = body
+        this.headers = headers
+        this.version = version
     }
 
 }

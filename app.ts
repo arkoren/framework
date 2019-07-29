@@ -1,22 +1,30 @@
+import { serve, ServerRequest } from 'https://deno.land/std@v0.12.0/http/server.ts'
 import {
     Method,
     Router,
     Status,
     NotFound,
+    Provider,
     Response,
     response,
+    isProvider,
     HTTPKernel,
     HTTPRequest,
     HTTPResponse,
     isHTTPKernel,
 } from './http.ts'
-import { serve, ServerRequest } from 'https://deno.land/std@v0.12.0/http/server.ts'
 
+/**
+ * Application options interface.
+ *
+ * @export
+ * @interface AppOptions
+ */
 export interface AppOptions {
     host: string
     port: number
-    routes: (route: Router) => void
     http_kernel: isHTTPKernel
+    providers: isProvider[]
 }
 
 /**
@@ -26,6 +34,33 @@ export interface AppOptions {
  * @class App
  */
 export class App {
+
+    /**
+     * Stores the HTTPKernel used by this app.
+     *
+     * @protected
+     * @type {HTTPKernel}
+     * @memberof App
+     */
+    protected http_kernel: HTTPKernel
+
+    /**
+     * Stores the ServiceProviders of the application.
+     *
+     * @protected
+     * @type {isProvider[]}
+     * @memberof App
+     */
+    protected providers: isProvider[]
+
+    /**
+     * Stores the instances of the providers.
+     *
+     * @protected
+     * @type {Provider[]}
+     * @memberof App
+     */
+    protected provider_instances: Provider[] = []
 
     /**
      * Stores the application host.
@@ -44,24 +79,24 @@ export class App {
     port: number
 
     /**
-     * Stores the HTTPKernel used by this app.
+     * Stores the application services.
      *
-     * @type {HTTPKernel}
+     * @type {{ [key: string]: any }}
      * @memberof App
      */
-    http_kernel: HTTPKernel
+    services: { [key: string]: any } = {}
 
     /**
      * Creates a new application.
      *
-     * @param {string} host
-     * @param {number} port
+     * @param {AppOptions} { host, port, http_kernel, providers }
      * @memberof App
      */
-    constructor(options: AppOptions) {
-        this.host = options.host
-        this.port = options.port
-        this.http_kernel = new options.http_kernel(options.routes)
+    constructor({ host, port, http_kernel, providers }: AppOptions) {
+        this.host = host
+        this.port = port
+        this.http_kernel = new http_kernel
+        this.providers = providers
     }
 
     /**
@@ -124,18 +159,38 @@ export class App {
     }
 
     /**
+     * Returns the application router instance.
+     *
+     * @returns {Router}
+     * @memberof App
+     */
+    router(): Router {
+        return this.http_kernel.router
+    }
+
+    /**
      * Starts the application.
      *
      * @memberof App
      */
     async start() {
-        // Create the server address.
         const address = `${this.host}:${this.port}`
-        // Start the server.
+        console.log('Initializing service providers...')
+        this.provider_instances = this.providers.map(
+            provider => new provider(this)
+        )
+        console.log('Registering services...')
+        for (const provider of this.provider_instances) {
+            provider.register()
+        }
+        console.log('Booting services...')
+        for (const provider of this.provider_instances) {
+            provider.boot()
+        }
+        console.log('Bootstrapping HTTP Kernel...')
+        this.http_kernel.bootstrap()
         console.log(`Starting application on: ${address}`)
-        const server = serve(address)
-        // Wait for requests.
-        for await (const req of server) {
+        for await (const req of serve(address)) {
             this.handleRequest(req)
         }
     }

@@ -1,7 +1,15 @@
 import { Request, Method } from './request.ts'
 import { Response } from './response.ts'
-import { HTTPMiddleware, IsMiddleware } from './middleware.ts'
-import { Handler } from './kernel.ts'
+import { HTTPMiddleware, Middleware } from './middleware.ts'
+import { Handler, HTTPKernel } from './kernel.ts'
+
+/**
+ * Represents the route registrar callback type.
+ *
+ * @export
+ * @type {RouteRegistrar}
+ */
+export type RouteRegistrar = (route: Router) => void
 
 /**
  * Represents a parameter.
@@ -38,7 +46,7 @@ class Parameter {
  * @interface RouteOptions
  */
 export interface RouteOptions {
-    middlewares: IsMiddleware[]
+    middlewares: Middleware[]
 }
 
 /**
@@ -48,7 +56,7 @@ export interface RouteOptions {
  * @interface RouteOptions
  */
 export interface RouterOptions {
-    middleware?: HTTPMiddleware | HTTPMiddleware[]
+    middleware?: string | HTTPMiddleware | HTTPMiddleware[]
 }
 
 /**
@@ -120,13 +128,19 @@ export class Route {
      * @returns {RouteOptions}
      * @memberof Route
      */
-    static optionsFrom(options: RouterOptions): RouteOptions {
+    static optionsFrom({ middleware }: RouterOptions, http_kernel: HTTPKernel): RouteOptions {
+        let middlewares: Middleware[] = []
+        if (middleware) {
+            if (Array.isArray(middleware)) {
+                middlewares = middleware.map(m => new m)
+            } else if (typeof middleware === 'string') {
+                middlewares = http_kernel.middlewares_of(middleware).map(m => new m)
+            } else {
+                middlewares = [new middleware]
+            }
+        }
         return {
-            middlewares: options.middleware
-                ? (Array.isArray(options.middleware)
-                    ? options.middleware.map(m => new m)
-                    : [new options.middleware])
-                : []
+            middlewares: middlewares
         }
     }
 
@@ -165,15 +179,15 @@ export class Route {
      * @param {Method} method
      * @param {string} path
      * @param {Handler} handler
-     * @param {[RouterOptions, RouterOptions]} options
+     * @param {[RouteOptions, RouteOptions]} options
      * @memberof Route
      */
-    constructor(method: Method, path: string, handler: Handler, options: [RouterOptions, RouterOptions]) {
+    constructor(method: Method, path: string, handler: Handler, options: [RouteOptions, RouteOptions]) {
         this.method = method
         this.path = path
         this.buildSegments()
         this.handler = handler
-        this.options = Route.mergeOptions(Route.optionsFrom(options[0]), Route.optionsFrom(options[1]))
+        this.options = Route.mergeOptions(options[0], options[1])
     }
 
     /**
@@ -210,18 +224,20 @@ export class Route {
      *
      * @param {Request} request
      * @param {string[]} parameters
+     * @param {Middleware[]} [globals=[]]
      * @returns {Response}
      * @memberof Route
      */
-    handle(request: Request, parameters: string[]): Response {
+    handle(request: Request, parameters: string[], globals: Middleware[] = []): Response {
+        const middlewares = [...globals, ...this.options.middlewares]
         // Execute the before middlewares.
-        for (const middleware of this.options.middlewares) {
+        for (const middleware of middlewares) {
             middleware.before(request)
         }
         // Execute the route handler.
         const response = this.handler(request, ...parameters)
         // Execute the after middlewares.
-        for (const middleware of this.options.middlewares) {
+        for (const middleware of middlewares) {
             middleware.after(request, response)
         }
         return response
@@ -236,6 +252,15 @@ export class Route {
  * @class Router
  */
 export class Router {
+
+    /**
+     * Stores the HTTP Kernel instance where this router is located.
+     *
+     * @protected
+     * @type {HTTPKernel}
+     * @memberof Router
+     */
+    protected http_kernel: HTTPKernel
 
     /**
      * Stores the router options that will be
@@ -265,7 +290,15 @@ export class Router {
      * @memberof Router
      */
     private addRoute(method: Method, path: string, handler: Handler, options: RouterOptions): Route {
-        const route = new Route(method, path, handler, [this.options, options])
+        const route = new Route(
+            method,
+            path,
+            handler,
+            [
+                Route.optionsFrom(this.options, this.http_kernel),
+                Route.optionsFrom(options, this.http_kernel)
+            ]
+        )
         this.routes.push(route)
         return route
     }
@@ -276,7 +309,8 @@ export class Router {
      * @param {RouteOptions} [options={}]
      * @memberof Router
      */
-    constructor(options: RouterOptions = {}) {
+    constructor(http_kernel: HTTPKernel, options: RouterOptions = {}) {
+        this.http_kernel = http_kernel
         this.options = options
     }
 
@@ -326,16 +360,13 @@ export class Router {
      * Creates a new group of routes with the given options.
      *
      * @param {RouteOptions} options
-     * @param {(route: Router) => void} callback
-     * @returns {Router}
+     * @param {RouteRegistrar} callback
      * @memberof Router
      */
-    group(options: RouterOptions, callback: (route: Router) => void) {
-        const router = new Router({ ...this.options, ...options })
+    group(options: RouterOptions, callback: RouteRegistrar) {
+        const router = new Router(this.http_kernel, { ...this.options, ...options })
         callback(router)
-        for (const route of router.routes) {
-            this.routes.push(route)
-        }
+        this.routes = [ ...this.routes, ...router.routes ]
     }
 
 }

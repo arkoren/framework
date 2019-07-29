@@ -2,33 +2,6 @@ import { Request } from './request.ts'
 import { Response } from './response.ts'
 
 /**
- * IsMiddleware interface.
- *
- * @export
- * @interface IsMiddleware
- */
-export interface IsMiddleware {
-
-    /**
-     * Runs before the route handler.
-     *
-     * @param {Request} request
-     * @memberof Log
-     */
-    before(request: Request): void
-
-    /**
-     * Runs after the route handler.
-     *
-     * @param {Request} request
-     * @param {Response} response
-     * @memberof Log
-     */
-    after(request: Request, response: Response): void
-
-}
-
-/**
  * HTTPMiddleware interface.
  *
  * @export
@@ -41,7 +14,7 @@ export interface HTTPMiddleware {
      *
      * @returns {HTTPMiddleware}
      */
-    new(): IsMiddleware
+    new(): Middleware
 
 }
 
@@ -52,17 +25,15 @@ export interface HTTPMiddleware {
  * @class Middleware
  * @implements {HTTPMiddleware}
  */
-export class Middleware implements IsMiddleware {
+export abstract class Middleware {
 
     /**
      * Runs before the route handler.
      *
      * @param {Request} request
-     * @memberof Log
+     * @memberof Middleware
      */
-    before(request: Request) {
-        // ...
-    }
+    abstract before(request: Request): void
 
     /**
      * Runs after the route handler.
@@ -71,8 +42,6 @@ export class Middleware implements IsMiddleware {
      * @param {Response} response
      * @memberof Log
      */
-    after(request: Request, response: Response) {
-        // ...
-    }
+    abstract after(request: Request, response: Response): void
 
 }
