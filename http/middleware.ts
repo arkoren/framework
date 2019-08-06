@@ -1,5 +1,5 @@
 import { Request } from './request.ts'
-import { Response } from './response.ts'
+import { Response, PossibleResponse } from './response.ts'
 
 /**
  * HTTPMiddleware interface.
@@ -31,17 +31,19 @@ export abstract class Middleware {
      * Runs before the route handler.
      *
      * @param {Request} request
+     * @returns {PossibleResponse}
      * @memberof Middleware
      */
-    abstract before(request: Request): void
+    abstract before(request: Request): PossibleResponse
 
     /**
      * Runs after the route handler.
      *
      * @param {Request} request
      * @param {Response} response
-     * @memberof Log
+     * @returns {PossibleResponse}
+     * @memberof Middleware
      */
-    abstract after(request: Request, response: Response): void
+    abstract after(request: Request, response: Response): PossibleResponse
 
 }

@@ -1,7 +1,7 @@
-import { Request, Method } from './request.ts'
-import { Response } from './response.ts'
-import { HTTPMiddleware, Middleware } from './middleware.ts'
 import { Handler, HTTPKernel } from './kernel.ts'
+import { HTTPResponse, response } from './response.ts'
+import { HTTPMiddleware, Middleware } from './middleware.ts'
+import { HTTPRequest, Parameters, Method } from './request.ts'
 
 /**
  * Represents the route registrar callback type.
@@ -193,16 +193,16 @@ export class Route {
     /**
      * Returns true if the route matches the current one.
      *
-     * @param {Request} request
-     * @returns {[boolean, string[]]}
+     * @param {HTTPRequest} request
+     * @returns {[boolean, Parameters]}
      * @memberof Route
      */
-    match(request: Request): [boolean, string[]] {
-        const segments = Route.segmentate(request.URI)
-        if (segments.length !== this.segments.length || this.method !== request.method) {
-            return [false, []]
+    match(request: HTTPRequest): [boolean, Parameters] {
+        const segments = Route.segmentate(request.path())
+        if (segments.length !== this.segments.length || this.method !== request.method()) {
+            return [false, {}]
         }
-        const parameters: string[] = []
+        const parameters: Parameters = {}
         // Don't replace this for loop with any high order
         // function for perforamnce reasons, this is a
         // sensitive function.
@@ -210,10 +210,10 @@ export class Route {
             const current = this.segments[i]
             if (typeof current === 'string') {
                 if (current !== segments[i]) {
-                    return [false, []]
+                    return [false, {}]
                 }
             } else {
-                parameters.push(segments[i])
+                parameters[current.name] = segments[i]
             }
         }
         return [true, parameters]
@@ -222,25 +222,32 @@ export class Route {
     /**
      * Handles the route request.
      *
-     * @param {Request} request
-     * @param {string[]} parameters
+     * @param {HTTPRequest} request
+     * @param {Parameters} parameters
      * @param {Middleware[]} [globals=[]]
-     * @returns {Response}
+     * @returns {HTTPResponse}
      * @memberof Route
      */
-    handle(request: Request, parameters: string[], globals: Middleware[] = []): Response {
+    handle(request: HTTPRequest, params: Parameters, globals: Middleware[] = []): HTTPResponse {
         const middlewares = [...globals, ...this.options.middlewares]
+        const full_request = { request, params }
         // Execute the before middlewares.
         for (const middleware of middlewares) {
-            middleware.before(request)
+            const possible_response = middleware.before(full_request)
+            if (possible_response) {
+                return response(possible_response)
+            }
         }
         // Execute the route handler.
-        const response = this.handler(request, ...parameters)
+        const res = this.handler(full_request)
         // Execute the after middlewares.
         for (const middleware of middlewares) {
-            middleware.after(request, response)
+            const possible_response = middleware.after(full_request, res)
+            if (possible_response) {
+                return response(possible_response)
+            }
         }
-        return response
+        return response(res)
     }
 
 }
@@ -318,18 +325,18 @@ export class Router {
      * Returns the current maching route. If no route
      * matches, a 404 route is returned.
      *
-     * @param {Request} request
-     * @returns {([Route | null, string[]])}
+     * @param {HTTPRequest} request
+     * @returns {([Route | null, Parameters])}
      * @memberof Router
      */
-    matchRoute(request: Request): [Route | null, string[]] {
+    matchRoute(request: HTTPRequest): [Route | null, Parameters] {
         for (const route of this.routes) {
             const [match, params] = route.match(request)
             if (match) {
                 return [route, params]
             }
         }
-        return [null, []]
+        return [null, {}]
     }
 
     /**

@@ -340,7 +340,7 @@ export class Collection<T> implements Iterable<T> {
      * @returns {Collection<T>}
      * @memberof Collection
      */
-    push(element: T): Collection<T> {
+    push(element: T): this {
         this.data.push(element)
         return this
     }
@@ -400,7 +400,7 @@ export class Collection<T> implements Iterable<T> {
      * @returns {Collection<T>}
      * @memberof Collection
      */
-    transform(callback: (item: T) => T): Collection<T> {
+    transform(callback: (item: T) => T): this {
         for (let i = 0; i < this.count(); i++) {
             this.data[i] = callback(this.data[i])
         }

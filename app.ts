@@ -21,10 +21,11 @@ import {
  * @interface AppOptions
  */
 export interface AppOptions {
+    url: string
     host: string
     port: number
-    http_kernel: isHTTPKernel
     providers: isProvider[]
+    http_kernel: isHTTPKernel
 }
 
 /**
@@ -63,6 +64,14 @@ export class App {
     protected provider_instances: Provider[] = []
 
     /**
+     * Application base URL.
+     *
+     * @type {string}
+     * @memberof App
+     */
+    url: string
+
+    /**
      * Stores the application host.
      *
      * @type {string}
@@ -92,7 +101,8 @@ export class App {
      * @param {AppOptions} { host, port, http_kernel, providers }
      * @memberof App
      */
-    constructor({ host, port, http_kernel, providers }: AppOptions) {
+    constructor({ url, host, port, http_kernel, providers }: AppOptions) {
+        this.url = url
         this.host = host
         this.port = port
         this.http_kernel = new http_kernel
@@ -109,9 +119,9 @@ export class App {
      */
     private respond(req: ServerRequest, res: HTTPResponse) {
         req.respond({
-            status: res.status,
-            headers: res.headers,
-            body: res.body
+            status: res.status(),
+            headers: res.getHeaders(),
+            body: res.content()
         })
     }
 
@@ -139,7 +149,7 @@ export class App {
         const hasBody = req.headers.has('Content-Length') && req.headers.get('Content-Length') !== '0'
         const request = new HTTPRequest(
             req.method as Method,
-            req.url,
+            new URL(req.url, this.url),
             hasBody ? await req.body() : new Uint8Array(),
             req.headers,
             parseFloat(`${req.protoMajor}.${req.protoMinor}`)

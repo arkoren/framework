@@ -1,6 +1,6 @@
-import { Request } from './request.ts'
 import { NotFound } from './errors.ts'
 import { Response } from './response.ts'
+import { Request, HTTPRequest } from './request.ts'
 import { Router, RouteRegistrar } from './router.ts'
 import { HTTPMiddleware, Middleware } from './middleware.ts'
 
@@ -10,7 +10,7 @@ import { HTTPMiddleware, Middleware } from './middleware.ts'
  * @export
  * @type {Handler}
  */
-export type Handler = (request: Request, ...parameters: string[]) => Response
+export type Handler = (request: Request) => Response
 
 /**
  * Defines the HTTPKernel interface.
@@ -31,11 +31,11 @@ export interface HTTPKernel {
     /**
      * Handles an incomming HTTP request.
      *
-     * @param {Request} request
+     * @param {HTTPRequest} request
      * @returns {Response}
      * @memberof HTTPKernel
      */
-    handle(request: Request): Response
+    handle(request: HTTPRequest): Response
 
     /**
      * Bootstraps the HTTP Kernel.
@@ -138,11 +138,11 @@ export class Kernel implements HTTPKernel {
     /**
      * Handles an incomming HTTP request.
      *
-     * @param {Request} request
+     * @param {HTTPRequest} request
      * @returns {Response}
      * @memberof Kernel
      */
-    handle(request: Request): Response {
+    handle(request: HTTPRequest): Response {
         const [route, parameters] = this.router.matchRoute(request)
         if (route) {
             return route.handle(request, parameters, this.middleware_instances)

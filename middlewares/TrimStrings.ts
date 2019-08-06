@@ -1,4 +1,4 @@
-import { Middleware, Request, Response } from '../http.ts'
+import { Middleware, Request, Response, PossibleResponse } from '../http.ts'
 
 /**
  * Implements the TrimStrings middleware.
@@ -22,9 +22,10 @@ export class TrimStrings extends Middleware {
      * Runs before the route handler.
      *
      * @param {Request} request
-     * @memberof Log
+     * @returns {PossibleResponse}
+     * @memberof TrimStrings
      */
-    before(request: Request) {
+    before(request: Request): PossibleResponse {
         // ...
     }
 
@@ -33,9 +34,10 @@ export class TrimStrings extends Middleware {
      *
      * @param {Request} request
      * @param {Response} response
-     * @memberof Log
+     * @returns {PossibleResponse}
+     * @memberof TrimStrings
      */
-    after(request: Request, response: Response) {
+    after(request: Request, response: Response): PossibleResponse {
         // ...
     }
 

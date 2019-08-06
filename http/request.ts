@@ -45,42 +45,65 @@ export class HTTPRequest {
     /**
      * Represents the request HTTP version.
      *
+     * @protected
      * @type {number}
      * @memberof HTTPRequest
      */
-    version: number
+    protected version: number
 
     /**
      * Represents the request method.
      *
+     * @protected
      * @type {Method}
      * @memberof HTTPRequest
      */
-    method: Method
+    protected http_method: Method
 
     /**
      * Represents the request URL.
      *
-     * @type {string}
+     * @protected
+     * @type {URL}
      * @memberof HTTPRequest
      */
-    URI: string
+    protected url: URL
 
     /**
      * Represents the request headers.
      *
+     * @protected
      * @type {Header}
      * @memberof HTTPRequest
      */
-    headers: Headers
+    protected headers: Headers
 
     /**
      * Represents the request body.
      *
+     * @protected
      * @type {Uint8Array}
      * @memberof HTTPRequest
      */
-    body: Uint8Array
+    protected body: Uint8Array
+
+    /**
+     * Input parameters.
+     *
+     * @protected
+     * @type {object}
+     * @memberof HTTPRequest
+     */
+    protected input_params: object = {}
+
+    /**
+     * Query parameters.
+     *
+     * @protected
+     * @type {object}
+     * @memberof HTTPRequest
+     */
+    protected query_params: object = {}
 
     /**
      * Creates an instance of HTTPRequest.
@@ -94,18 +117,145 @@ export class HTTPRequest {
      */
     constructor(
         method: Method,
-        URI: string,
+        url: URL,
         body: Uint8Array = new Uint8Array,
         headers: Headers = new Headers,
         version: number = 1.1
     ) {
-        this.method = method
-        this.URI = URI
+        this.http_method = method
+        this.url = url
         this.body = body
         this.headers = headers
         this.version = version
     }
 
+    /**
+     * Determine if the request is sending JSON.
+     *
+     * @returns {boolean}
+     * @memberof HTTPRequest
+     */
+    isJson(): boolean {
+        const header = this.header('Content-Type')[0]
+        return header.includes('application/json')
+            || header.includes('application/ld+json')
+    }
+
+    /**
+     * Determine if the current request accepts any content type.
+     *
+     * @returns {boolean}
+     * @memberof HTTPRequest
+     */
+    acceptsAnyContentType(): boolean {
+        return this.accept('*/*', true)
+            || this.accept('*' , true)
+    }
+
+    /**
+     * Determines whether a request accepts JSON.
+     *
+     * @returns {boolean}
+     * @memberof HTTPResponse
+     */
+    acceptsJson(): boolean {
+        return this.accept('application/json')
+            || this.accept('application/ld+json')
+    }
+
+    /**
+     * Determines whether a request accepts HTML.
+     *
+     * @returns {boolean}
+     * @memberof HTTPRequest
+     */
+    acceptsHtml(): boolean {
+        return this.accept('text/html')
+    }
+
+    /**
+     * Returns true if the request accepts a given mime type.
+     *
+     * @param {string} type
+     * @param {boolean} [strict=false]
+     * @returns {boolean}
+     * @memberof HTTPRequest
+     */
+    accept(type: string, strict: boolean = false): boolean {
+        const header = this.header('Accept')[0]
+        if (strict) {
+            return header.includes(type)
+        }
+        return header.includes(type)
+            || header.includes('*/*')
+            || header.includes('*')
+    }
+
+    /**
+     * Determine if a header is set on the request.
+     *
+     * @param {string} key
+     * @returns {boolean}
+     * @memberof HTTPResponse
+     */
+    hasHeader(key: string): boolean {
+        return this.headers.has(key)
+    }
+
+    /**
+     * Retrieve a header from the request.
+     *
+     * @param {string} [key]
+     * @param {string} [def]
+     * @returns {string[]}
+     * @memberof HTTPResponse
+     */
+    header(key?: string, def?: string[]): string[] {
+        if (!key) {
+            const result: string[] = []
+            for (const h of this.headers) {
+                result.push(h[0])
+            }
+            return result
+        }
+        const header = this.headers.get(key)
+        if (!header) {
+            // Will be changed to a null coalescing operator when available.
+            return def ? def : ['']
+        }
+        return [header]
+    }
+
+    /**
+     * Returns the HTTP methods used in the request.
+     *
+     * @returns {Method}
+     * @memberof HTTPRequest
+     */
+    method(): Method {
+        return this.http_method
+    }
+
+    /**
+     * Returns the
+     *
+     * @returns {string}
+     * @memberof HTTPRequest
+     */
+    path(): string {
+        return this.url.pathname
+    }
+
+}
+
+/**
+ * Parameters.
+ *
+ * @export
+ * @interface Parameters
+ */
+export interface Parameters {
+    [key: string]: string
 }
 
 /**
@@ -114,4 +264,7 @@ export class HTTPRequest {
  * @export
  * @type {Request}
  */
-export type Request = HTTPRequest
+export interface Request {
+    request: HTTPRequest
+    params: Parameters
+}
