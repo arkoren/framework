@@ -91,27 +91,27 @@ export class HTTPRequest {
      * Input parameters.
      *
      * @protected
-     * @type {object}
+     * @type {{ [key: string]: string }}
      * @memberof HTTPRequest
      */
-    protected input_params: object = {}
+    protected input_params: { [key: string]: string } = {}
 
     /**
      * Query parameters.
      *
      * @protected
-     * @type {object}
+     * @type {{ [key: string]: string }}
      * @memberof HTTPRequest
      */
-    protected query_params: object = {}
+    protected query_params: { [key: string]: string } = {}
 
     /**
      * Creates an instance of HTTPRequest.
      *
      * @param {Method} method
-     * @param {string} URI
-     * @param {Uint8Array} [body]
-     * @param {Headers} [headers]
+     * @param {URL} url
+     * @param {Uint8Array} [body=new Uint8Array]
+     * @param {Headers} [headers=new Headers]
      * @param {number} [version=1.1]
      * @memberof HTTPRequest
      */
@@ -127,6 +127,27 @@ export class HTTPRequest {
         this.body = body
         this.headers = headers
         this.version = version
+        this.url.searchParams
+        for (const [ name, value ] of this.url.searchParams.entries()) {
+            this.query_params[name] = value
+        }
+        if (this.isForm()) {
+            const form_params = new URLSearchParams(new TextDecoder().decode(this.body))
+            for (const [ name, value ] of form_params.entries()) {
+                this.input_params[name] = value
+            }
+        }
+    }
+
+    /**
+     * Determine if the request is sending form data.
+     *
+     * @returns {boolean}
+     * @memberof HTTPRequest
+     */
+    isForm(): boolean {
+        const [ header ] = this.header('Content-Type')
+        return header.includes('application/x-www-form-urlencoded')
     }
 
     /**
@@ -136,7 +157,7 @@ export class HTTPRequest {
      * @memberof HTTPRequest
      */
     isJson(): boolean {
-        const header = this.header('Content-Type')[0]
+        const [ header ] = this.header('Content-Type')
         return header.includes('application/json')
             || header.includes('application/ld+json')
     }
@@ -182,7 +203,7 @@ export class HTTPRequest {
      * @memberof HTTPRequest
      */
     accept(type: string, strict: boolean = false): boolean {
-        const header = this.header('Accept')[0]
+        const [ header ] = this.header('Accept')
         if (strict) {
             return header.includes(type)
         }
@@ -196,7 +217,7 @@ export class HTTPRequest {
      *
      * @param {string} key
      * @returns {boolean}
-     * @memberof HTTPResponse
+     * @memberof HTTPRequest
      */
     hasHeader(key: string): boolean {
         return this.headers.has(key)
@@ -208,22 +229,22 @@ export class HTTPRequest {
      * @param {string} [key]
      * @param {string} [def]
      * @returns {string[]}
-     * @memberof HTTPResponse
+     * @memberof HTTPRequest
      */
     header(key?: string, def?: string[]): string[] {
         if (!key) {
             const result: string[] = []
-            for (const h of this.headers) {
-                result.push(h[0])
+            for (const [ h ] of this.headers) {
+                result.push(h)
             }
             return result
         }
         const header = this.headers.get(key)
         if (!header) {
             // Will be changed to a null coalescing operator when available.
-            return def ? def : ['']
+            return def ? def : [ '' ]
         }
-        return [header]
+        return [ header ]
     }
 
     /**
@@ -237,6 +258,17 @@ export class HTTPRequest {
     }
 
     /**
+     * Determines if the request method matches a given one.
+     *
+     * @param {Method} input
+     * @returns {boolean}
+     * @memberof HTTPRequest
+     */
+    isMethod(input: Method): boolean {
+        return this.method() === input
+    }
+
+    /**
      * Returns the
      *
      * @returns {string}
@@ -244,6 +276,32 @@ export class HTTPRequest {
      */
     path(): string {
         return this.url.pathname
+    }
+
+    /**
+     * Returns a query parameter of the HTTP request.
+     *
+     * @param {string} search
+     * @returns {string}
+     * @memberof HTTPRequest
+     */
+    query(search: string): string | null {
+        return this.query_params.hasOwnProperty(search)
+            ? this.query_params[search]
+            : null
+    }
+
+    /**
+     * Returns an input parameter from the HTTP request.
+     *
+     * @param {string} search
+     * @returns {string}
+     * @memberof HTTPRequest
+     */
+    input(search: string): string | null {
+        return this.input_params.hasOwnProperty(search)
+            ? this.input_params[search]
+            : this.query(search)
     }
 
 }

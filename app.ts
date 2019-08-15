@@ -184,23 +184,26 @@ export class App {
      * @memberof App
      */
     async start() {
+        console.log(`\nARKOREN - The next-generation type-safe web framework\n`)
         const address = `${this.host}:${this.port}`
-        console.log('Initializing service providers...')
+        console.log('-> Initializing service providers...')
         this.provider_instances = this.providers.map(
             provider => new provider(this)
         )
-        console.log('Registering services...')
+        console.log('-> Registering services...')
         for (const provider of this.provider_instances) {
             provider.register()
         }
-        console.log('Booting services...')
+        console.log('-> Booting services...')
         for (const provider of this.provider_instances) {
             provider.boot()
         }
-        console.log('Bootstrapping HTTP Kernel...')
+        console.log('-> Bootstrapping HTTP Kernel...')
         this.http_kernel.bootstrap()
-        console.log(`Starting application on: ${address}`)
-        for await (const req of serve(address)) {
+        console.log('-> Starting server...')
+        const server = serve(address)
+        console.log(`\nServer address: ${address}\n`)
+        for await (const req of server) {
             this.handleRequest(req)
         }
     }
