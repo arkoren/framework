@@ -1,3 +1,5 @@
+import { Validator } from './validator.ts'
+
 /**
  * Represents an HTTP request method.
  *
@@ -33,6 +35,22 @@ export enum Method {
     Patch = 'PATCH'
 
 }
+
+/**
+ * An HTTP parameter name.
+ *
+ * @export
+ * @type {HTTPParamName}
+ */
+export type HTTPParamName = string
+
+/**
+ * An HTTP parameter value.
+ *
+ * @export
+ * @type {HTTPParamValue}
+ */
+export type HTTPParamValue = string | null
 
 /**
  * Represents an HTTP request.
@@ -94,7 +112,7 @@ export class HTTPRequest {
      * @type {{ [key: string]: string }}
      * @memberof HTTPRequest
      */
-    protected input_params: { [key: string]: string } = {}
+    protected input_params: { [key: string]: HTTPParamValue } = {}
 
     /**
      * Query parameters.
@@ -103,7 +121,7 @@ export class HTTPRequest {
      * @type {{ [key: string]: string }}
      * @memberof HTTPRequest
      */
-    protected query_params: { [key: string]: string } = {}
+    protected query_params: { [key: string]: HTTPParamValue } = {}
 
     /**
      * Creates an instance of HTTPRequest.
@@ -281,11 +299,11 @@ export class HTTPRequest {
     /**
      * Returns a query parameter of the HTTP request.
      *
-     * @param {string} search
-     * @returns {string}
+     * @param {HTTPParamName} search
+     * @returns {HTTPParamValue}
      * @memberof HTTPRequest
      */
-    query(search: string): string | null {
+    query(search: HTTPParamName): HTTPParamValue {
         return this.query_params.hasOwnProperty(search)
             ? this.query_params[search]
             : null
@@ -294,14 +312,74 @@ export class HTTPRequest {
     /**
      * Returns an input parameter from the HTTP request.
      *
-     * @param {string} search
-     * @returns {string}
+     * @param {HTTPParamName} search
+     * @returns {HTTPParamValue}
      * @memberof HTTPRequest
      */
-    input(search: string): string | null {
+    input(search: HTTPParamName): HTTPParamValue {
         return this.input_params.hasOwnProperty(search)
             ? this.input_params[search]
             : this.query(search)
+    }
+
+    /**
+     * Transforms the request input fields and query string.
+     *
+     * @param {(name: HTTPParamName, value: HTTPParamValue) => HTTPParamValue} input_callback
+     * @param {(name: HTTPParamName, value: HTTPParamValue) => HTTPParamValue} query_callback
+     * @memberof HTTPRequest
+     */
+    transformInputAndQuery(
+        input_callback: (name: HTTPParamName, value: HTTPParamValue) => HTTPParamValue,
+        query_callback: (name: HTTPParamName, value: HTTPParamValue) => HTTPParamValue
+    ) {
+        for (const name in this.input_params) {
+            this.input_params[name] = input_callback(name, this.input_params[name])
+        }
+        for (const name in this.query_params) {
+            this.query_params[name] = input_callback(name, this.query_params[name])
+        }
+    }
+
+    /**
+     * Returns only the fields of the request input.
+     *
+     * @param {string[]} fields
+     * @returns {({ [key: string]: HTTPParamValue })}
+     * @memberof HTTPRequest
+     */
+    only(fields: HTTPParamName[]): { [key: string]: HTTPParamValue } {
+        const result: { [key: string]: HTTPParamValue } = {}
+        for (const field of fields) {
+            result[field] = this.input(field)
+        }
+        return result
+    }
+
+    /**
+     * Returns all the input data.
+     *
+     * @returns {{ [key: string]: HTTPParamValue }}
+     * @memberof HTTPRequest
+     */
+    all(): { [key: string]: HTTPParamValue } {
+        return { ...this.query_params, ...this.input_params }
+    }
+
+    /**
+     * Validates the request and returns only the inputs validated.
+     *
+     * @param {{ [key: string]: string }} rules
+     * @returns {{ [key: string]: HTTPParamValue }}
+     * @memberof HTTPRequest
+     */
+    validate(rules: { [key: string]: string }): { [key: string]: HTTPParamValue } {
+        const validator = new Validator(this, rules)
+        const [ didPassValidation, errorMessage ] = validator.validate()
+        if (!didPassValidation) {
+            throw Error(errorMessage)
+        }
+        return this.only(Object.keys(rules))
     }
 
 }

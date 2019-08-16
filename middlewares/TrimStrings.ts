@@ -1,4 +1,4 @@
-import { Middleware, Request, Response, PossibleResponse } from '../http.ts'
+import { Middleware, Request, Response, PossibleResponse, HTTPParamName, HTTPParamValue } from '../http.ts'
 
 /**
  * Implements the TrimStrings middleware.
@@ -25,8 +25,13 @@ export class TrimStrings extends Middleware {
      * @returns {PossibleResponse}
      * @memberof TrimStrings
      */
-    before(request: Request): PossibleResponse {
-        // ...
+    before({ request }: Request): PossibleResponse {
+        request.transformInputAndQuery(
+            (name: HTTPParamName, value: HTTPParamValue) =>
+                (value === '' && !this.except.includes(name)) ? null : value,
+            (name: HTTPParamName, value: HTTPParamValue) =>
+                (value === '' && !this.except.includes(name)) ? null : value,
+        )
     }
 
     /**
