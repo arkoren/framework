@@ -1,5 +1,12 @@
-import { HTTPParamValue } from './request.ts'
+import { HTTPParamValue, HTTPRequest } from './request.ts'
 
+/**
+ * Rule class.
+ *
+ * @export
+ * @abstract
+ * @class Rule
+ */
 export abstract class Rule {
 
     /**
@@ -12,12 +19,24 @@ export abstract class Rule {
     protected targets: string[]
 
     /**
+     * Stores the HTTP request.
+     *
+     * @protected
+     * @type {HTTPRequest}
+     * @memberof Rule
+     */
+    protected request: HTTPRequest
+
+
+    /**
      * Creates an instance of Rule.
      *
+     * @param {HTTPRequest} request
      * @param {string[]} targets
      * @memberof Rule
      */
-    constructor(targets: string[]) {
+    constructor(request: HTTPRequest, targets: string[]) {
+        this.request = request
         this.targets = targets
     }
 
@@ -35,18 +54,38 @@ export abstract class Rule {
 }
 
 /**
+ * Is rule interface.
+ *
+ * @export
+ * @interface isRule
+ */
+export interface isRule {
+
+    /**
+     * Creates an instance of Rule.
+     *
+     * @param {HTTPRequest} request
+     * @param {string[]} targets
+     * @memberof Rule
+     */
+    new(request: HTTPRequest, targets: string[]): Rule
+
+}
+
+/**
  * Transforms a string name to the rule class.
  *
  * @export
  * @param {string} name
  * @returns {Rule}
  */
-export function name_to_rule(name: string, targets: string[]): Rule {
+export function name_to_rule(name: string): isRule {
     switch (name) {
-        case 'min': return new MinRule(targets)
-        case 'max': return new MaxRule(targets)
-        case 'numeric': return new NumericRule(targets)
-        default: return new IgnoreRule(targets)
+        case 'accepted': return AcceptedRule
+        case 'numeric': return NumericRule
+        case 'min': return MinRule
+        case 'max': return MaxRule
+        default: return IgnoreRule
     }
 }
 
@@ -90,7 +129,7 @@ export class MinRule extends Rule {
      */
     validate(value: HTTPParamValue): [ boolean, string ] {
         const [ min ] = this.targets
-        const result = value ? +value !== NaN && +value > +min : false
+        const result = value ? !isNaN(+value) && +value > +min : false
         return [ result, result ? '' : `Value must be higher than ${min}` ]
     }
 
@@ -114,7 +153,7 @@ export class MaxRule extends Rule {
      */
     validate(value: HTTPParamValue): [ boolean, string ] {
         const [ max ] = this.targets
-        const result = value ? +value !== NaN && +value < +max : false
+        const result = value ? !isNaN(+value) && +value < +max : false
         return [ result, result ? '' : `Value must be lower than ${max}` ]
     }
 
@@ -137,8 +176,34 @@ export class NumericRule extends Rule {
      * @memberof NumericRule
      */
     validate(value: HTTPParamValue): [ boolean, string ] {
-        const result: boolean = value ? +value !== NaN : false
+        const result: boolean = value ? !isNaN(+value) : false
         return [ result, result ? '' : `Value must be numeric` ]
+    }
+
+}
+
+/**
+ * Implements the Numeric validation.
+ *
+ * @export
+ * @class AcceptedRule
+ * @extends {Rule}
+ */
+export class AcceptedRule extends Rule {
+
+    /**
+     * Validates the value agaist the rule.
+     *
+     * @param {HTTPParamValue} value
+     * @returns {[ boolean, string ]}
+     * @memberof AcceptedRule
+     */
+    validate(value: HTTPParamValue): [ boolean, string ] {
+        const result: boolean = value === 'yes'
+            || value === 'on'
+            || value === '1'
+            || value === 'true'
+        return [ result, result ? '' : `Value must be either 'yes', 'on', '1' or 'true'` ]
     }
 
 }

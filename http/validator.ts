@@ -2,6 +2,16 @@ import { HTTPRequest } from './request.ts'
 import { Rule, name_to_rule } from './validator_rules.ts'
 
 /**
+ * Validator errors interface.
+ *
+ * @export
+ * @interface ValidatorErrors
+ */
+export interface ValidatorErrors {
+    [key: string]: string[]
+}
+
+/**
  * HTTP input validation.
  *
  * @export
@@ -40,7 +50,7 @@ export class Validator {
                 ...(this.rules[field] ? this.rules[field] : []),
                 ...rules[field].split('|').map(rule => {
                     const [ name, rest ] = rule.split(':')
-                    return name_to_rule(name, rest ? rest.split(',') : [])
+                    return new (name_to_rule(name))(request, rest ? rest.split(',') : [])
                 })
             ]
         }
@@ -48,21 +58,25 @@ export class Validator {
 
     /**
      * Validates the request and returns if the validation succeded
-     * and an additional validation error in case of failure.
+     * and additionaly the validation errors if any.
      *
      * @returns {[boolean, string]}
      * @memberof Validator
      */
-    validate(): [boolean, string] {
+    validate(): [boolean, ValidatorErrors] {
+        const errors: ValidatorErrors = {}
         for (const field in this.rules) {
             for (const rule of this.rules[field]) {
-                const [ fieldPassRule, errorMessage ] = rule.validate(this.request.input(field))
+                const [ fieldPassRule, fieldError ] = rule.validate(this.request.input(field))
                 if (!fieldPassRule) {
-                    return [ fieldPassRule, errorMessage ]
+                    errors[field] = [
+                        ...(errors[field] ? errors[field] : []),
+                        fieldError
+                    ]
                 }
             }
         }
-        return [ true, '' ]
+        return [ Object.keys(errors).length === 0, errors ]
     }
 
 }

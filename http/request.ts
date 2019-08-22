@@ -1,5 +1,5 @@
+import { ValidationFail } from './errors.ts'
 import { Validator } from './validator.ts'
-
 /**
  * Represents an HTTP request method.
  *
@@ -375,9 +375,9 @@ export class HTTPRequest {
      */
     validate(rules: { [key: string]: string }): { [key: string]: HTTPParamValue } {
         const validator = new Validator(this, rules)
-        const [ didPassValidation, errorMessage ] = validator.validate()
+        const [ didPassValidation, validationErrors ] = validator.validate()
         if (!didPassValidation) {
-            throw Error(errorMessage)
+            throw new ValidationFail(validationErrors)
         }
         return this.only(Object.keys(rules))
     }

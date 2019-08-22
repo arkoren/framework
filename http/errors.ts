@@ -1,35 +1,41 @@
 import { Status } from './status.ts'
 
-export abstract class HTTPError extends Error {
+export class HTTPError extends Error {
 
     /**
      * Stores the HTTP status code of the error.
      *
-     * @abstract
      * @type {Status}
      * @memberof HTTPError
      */
-    public abstract status: Status
+    public status: Status = 500
 
     /**
      * Stores the error description.
      *
-     * @abstract
      * @type {string}
      * @memberof HTTPError
      */
-    public abstract description: string
+    public description: string = 'Internal Server Error'
+
+    /**
+     * Stores additional error information.
+     *
+     * @type {{ [key: string]: any }}
+     * @memberof HTTPError
+     */
+    public additional: { [key: string]: any }
 
     /**
      * Creates an instance of HTTPError.
      *
-     * @param {string} [description='Internal Server Error']
-     * @param {Status} [status=500]
+     * @param {{ [key: string]: any }} additional
      * @memberof HTTPError
      */
-    constructor(description: string = 'Internal Server Error', status: Status = 500) {
-        super(description)
-        // Object.setPrototypeOf(this, HTTPError.prototype)
+    constructor(additional: { [key: string]: any } = {}) {
+        super()
+        this.message = this.description
+        this.additional = additional
     }
 
 }
@@ -40,7 +46,7 @@ export abstract class HTTPError extends Error {
  * @class NotFound
  * @extends {Error}
  */
-export class NotFound extends Error {
+export class NotFound extends HTTPError {
 
     /**
      * Stores the HTTP status code of the error.
@@ -67,7 +73,7 @@ export class NotFound extends Error {
  * @class ValidationFail
  * @extends {Error}
  */
-export class ValidationFail extends Error {
+export class ValidationFail extends HTTPError {
 
     /**
      * Stores the HTTP status code of the error.

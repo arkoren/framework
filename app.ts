@@ -3,7 +3,7 @@ import {
     Method,
     Router,
     Status,
-    NotFound,
+    HTTPError,
     Provider,
     Response,
     response,
@@ -158,9 +158,9 @@ export class App {
             const response = this.http_kernel.handle(request)
             this.handleResponse(req, response)
         } catch (error) {
-            if (error instanceof NotFound) {
-                // Route not found.
-                this.handleResponse(req, response(error.message, Status.NotFound))
+            if (error instanceof HTTPError) {
+                // Handled HTTP error.
+                this.handleResponse(req, response({ error: error.description, additional: error.additional }, error.status))
             } else {
                 // Another kind of error. Probably developer's code.
                 this.handleResponse(req, response(error.message, Status.InternalServerError))
