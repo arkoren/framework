@@ -1,4 +1,4 @@
-import { Middleware, Request, Response, PossibleResponse, HTTPParamName, HTTPParamValue } from '../http.ts'
+import { Middleware, Request, Response, PossibleResponse, HTTPParamName, HTTPParamValue } from '../../http.ts'
 
 /**
  * Implements the TrimStrings middleware.
@@ -7,16 +7,17 @@ import { Middleware, Request, Response, PossibleResponse, HTTPParamName, HTTPPar
  * @class TrimStrings
  * @extends {Middleware}
  */
-export class TrimStrings extends Middleware {
+export abstract class TrimStrings extends Middleware {
 
     /**
      * The names of the attributes that should not be trimmed.
      *
      * @protected
+     * @abstract
      * @type {string[]}
      * @memberof TrimStrings
      */
-    protected except: string[] = []
+    protected abstract except: string[] = []
 
     /**
      * Runs before the route handler.
@@ -28,9 +29,13 @@ export class TrimStrings extends Middleware {
     before({ request }: Request): PossibleResponse {
         request.transformInputAndQuery(
             (name: HTTPParamName, value: HTTPParamValue) =>
-                (value === '' && !this.except.includes(name)) ? null : value,
+                (value === null || (value === '' && !this.except.includes(name)))
+                    ? null
+                    : value.trim(),
             (name: HTTPParamName, value: HTTPParamValue) =>
-                (value === '' && !this.except.includes(name)) ? null : value,
+                (value === null || (value === '' && !this.except.includes(name)))
+                    ? null
+                    : value.trim(),
         )
     }
 

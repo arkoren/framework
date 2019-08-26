@@ -1,1 +1,1 @@
-export * from './middlewares/TrimStrings.ts'
+export * from './http/middlewares/TrimStrings.ts'

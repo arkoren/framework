@@ -1,5 +1,6 @@
 import { HTTPRequest } from './request.ts'
-import { Rule, name_to_rule } from './validator_rules.ts'
+import { Rule, nameToRule } from './validator_rules.ts'
+import { StringReplacer } from '../utils/replacer.ts'
 
 /**
  * Validator errors interface.
@@ -45,12 +46,12 @@ export class Validator {
      */
     constructor(request: HTTPRequest, rules: { [key: string]: string }) {
         this.request = request
-        for (const field in rules) {
-            this.rules[field] = [
-                ...(this.rules[field] ? this.rules[field] : []),
-                ...rules[field].split('|').map(rule => {
+        for (const attribute in rules) {
+            this.rules[attribute] = [
+                ...(this.rules[attribute] ? this.rules[attribute] : []),
+                ...rules[attribute].split('|').map(rule => {
                     const [ name, rest ] = rule.split(':')
-                    return new (name_to_rule(name))(request, rest ? rest.split(',') : [])
+                    return new (nameToRule(name))(request, rest ? rest.split(',') : [])
                 })
             ]
         }
@@ -60,19 +61,26 @@ export class Validator {
      * Validates the request and returns if the validation succeded
      * and additionaly the validation errors if any.
      *
-     * @returns {[boolean, string]}
+     * @returns {[ boolean, ValidatorErrors ]}
      * @memberof Validator
      */
-    validate(): [boolean, ValidatorErrors] {
+    validate(): [ boolean, ValidatorErrors ] {
         const errors: ValidatorErrors = {}
-        for (const field in this.rules) {
-            for (const rule of this.rules[field]) {
-                const [ fieldPassRule, fieldError ] = rule.validate(this.request.input(field))
-                if (!fieldPassRule) {
-                    errors[field] = [
-                        ...(errors[field] ? errors[field] : []),
-                        fieldError
-                    ]
+        for (const attribute in this.rules) {
+            for (const rule of this.rules[attribute]) {
+                const value = this.request.input(attribute)
+                if (!rule.passes(attribute, value, errors)) {
+                    if (rule.addErrorOnFailure) {
+                        errors[attribute] = [
+                            ...(errors[attribute] ? errors[attribute] : []),
+                            StringReplacer.replace(rule.message, rule.placeholders(attribute, value))
+                        ]
+                    }
+                    if (rule.stopIfFail) {
+                        break
+                    }
+                } else if (rule.stopIfPass) {
+                    break
                 }
             }
         }

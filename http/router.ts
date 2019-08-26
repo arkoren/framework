@@ -1,7 +1,7 @@
 import { Handler, HTTPKernel } from './kernel.ts'
 import { HTTPResponse, response } from './response.ts'
 import { HTTPMiddleware, Middleware } from './middleware.ts'
-import { HTTPRequest, Parameters, Method } from './request.ts'
+import { Request, HTTPRequest, Parameters, Method } from './request.ts'
 
 /**
  * Represents the route registrar callback type.
@@ -200,7 +200,7 @@ export class Route {
     match(request: HTTPRequest): [boolean, Parameters] {
         const segments = Route.segmentate(request.path())
         if (segments.length !== this.segments.length || this.method !== request.method()) {
-            return [false, {}]
+            return [ false, {} ]
         }
         const parameters: Parameters = {}
         // Don't replace this for loop with any high order
@@ -210,13 +210,13 @@ export class Route {
             const current = this.segments[i]
             if (typeof current === 'string') {
                 if (current !== segments[i]) {
-                    return [false, {}]
+                    return [ false, {} ]
                 }
             } else {
                 parameters[current.name] = segments[i]
             }
         }
-        return [true, parameters]
+        return [ true, parameters ]
     }
 
     /**
@@ -229,8 +229,8 @@ export class Route {
      * @memberof Route
      */
     handle(request: HTTPRequest, params: Parameters, globals: Middleware[] = []): HTTPResponse {
-        const middlewares = [...globals, ...this.options.middlewares]
-        const full_request = { request, params }
+        const middlewares = [ ...globals, ...this.options.middlewares ]
+        const full_request: Request = { request, params }
         // Execute the before middlewares.
         for (const middleware of middlewares) {
             const possible_response = middleware.before(full_request)

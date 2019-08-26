@@ -242,6 +242,22 @@ export class HTTPRequest {
     }
 
     /**
+     * Determines if the request input data has a given
+     * key or a list of keys.
+     *
+     * @param {(string | string[])} key
+     * @returns {boolean}
+     * @memberof HTTPRequest
+     */
+    has(key: string | string[]): boolean {
+        return [ ...typeof key === 'string' ? [ key ] : key ]
+            .every(key =>
+                this.input_params.hasOwnProperty(key)
+                || this.query_params.hasOwnProperty(key)
+            )
+    }
+
+    /**
      * Retrieve a header from the request.
      *
      * @param {string} [key]

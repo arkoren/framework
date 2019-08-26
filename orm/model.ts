@@ -1,5 +1,11 @@
 import { plural } from '../utils/string.ts'
 
+/**
+ * Represents a database model.
+ *
+ * @export
+ * @class Model
+ */
 export class Model {
 
     /**
