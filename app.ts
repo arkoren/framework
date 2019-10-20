@@ -1,4 +1,4 @@
-import { serve, ServerRequest } from 'https://deno.land/std@v0.12.0/http/server.ts'
+import { serve, ServerRequest } from './deno.ts'
 import {
     Method,
     Router,
@@ -21,10 +21,45 @@ import {
  * @interface AppOptions
  */
 export interface AppOptions {
+
+    /**
+     * Represents the application URL.
+     *
+     * @type {string}
+     * @memberof AppOptions
+     */
     url: string
+
+    /**
+     * Represents the application host.
+     *
+     * @type {string}
+     * @memberof AppOptions
+     */
     host: string
+
+    /**
+     * Represents the application port.
+     *
+     * @type {number}
+     * @memberof AppOptions
+     */
     port: number
+
+    /**
+     * Represents the application service providers.
+     *
+     * @type {isProvider[]}
+     * @memberof AppOptions
+     */
     providers: isProvider[]
+
+    /**
+     * Represents the application HTTP kernel.
+     *
+     * @type {isHTTPKernel}
+     * @memberof AppOptions
+     */
     http_kernel: isHTTPKernel
 }
 

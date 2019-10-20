@@ -1,5 +1,5 @@
 import { HTTPRequest } from './request.ts'
-import { Rule, nameToRule } from './validator_rules.ts'
+import { Rule } from './validator_rules.ts'
 import { StringReplacer } from '../utils/replacer.ts'
 
 /**
@@ -51,7 +51,7 @@ export class Validator {
                 ...(this.rules[attribute] ? this.rules[attribute] : []),
                 ...rules[attribute].split('|').map(rule => {
                     const [ name, rest ] = rule.split(':')
-                    return new (nameToRule(name))(request, rest ? rest.split(',') : [])
+                    return new (Rule.fromName(name))(request, rest ? rest.split(',') : [])
                 })
             ]
         }

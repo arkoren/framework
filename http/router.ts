@@ -136,7 +136,7 @@ export class Route {
             } else if (typeof middleware === 'string') {
                 middlewares = http_kernel.middlewares_of(middleware).map(m => new m)
             } else {
-                middlewares = [new middleware]
+                middlewares = [ new middleware ]
             }
         }
         return {
@@ -155,7 +155,7 @@ export class Route {
      */
     static mergeOptions(first: RouteOptions, second: RouteOptions): RouteOptions {
         return {
-            middlewares: [...first.middlewares, ...second.middlewares]
+            middlewares: [ ...first.middlewares, ...second.middlewares ]
         }
     }
 
