@@ -5,27 +5,6 @@ type TransformedHTTPParamValue = string | number | boolean | object | any[] | nu
 type TransformedHTTPParamType = 'string' | 'number' | 'boolean' | 'object' | 'array' | 'null'
 
 /**
- * Transforms a string name to the rule class.
- *
- * @export
- * @param {string} name
- * @returns {Rule}
- */
-export function nameToRule(name: string): isRule {
-    const rules: { [key: string]: isRule } = {
-        'nullable': NullableRule,
-        'required': RequiredRule,
-        'accepted': AcceptedRule,
-        'numeric': NumericRule,
-        'min': MinRule,
-        'max': MaxRule
-    }
-    return rules.hasOwnProperty(name)
-        ? rules[name]
-        : IgnoreRule
-}
-
-/**
  * Rule class.
  *
  * @export
@@ -99,6 +78,28 @@ export abstract class Rule {
     constructor(request: HTTPRequest, targets: string[]) {
         this.request = request
         this.targets = targets
+    }
+
+    /**
+     * Transforms a string name to the rule class.
+     *
+     * @static
+     * @param {string} name
+     * @returns {isRule}
+     * @memberof Rule
+     */
+    static fromName(name: string): isRule {
+        const rules: { [key: string]: isRule } = {
+            'nullable': NullableRule,
+            'required': RequiredRule,
+            'accepted': AcceptedRule,
+            'numeric': NumericRule,
+            'min': MinRule,
+            'max': MaxRule
+        }
+        return rules.hasOwnProperty(name)
+            ? rules[name]
+            : IgnoreRule
     }
 
     /**

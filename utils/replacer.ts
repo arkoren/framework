@@ -1,19 +1,14 @@
-/**
- * Represents a string replacer.
- *
- * @export
- * @class StringReplacer
- */
-export class StringReplacer {
+export namespace StringReplacer {
 
     /**
      * Returns the string with the values replaced.
      *
+     * @export
+     * @param {string} str
      * @param {{ [key: string]: string }} values
      * @returns {string}
-     * @memberof StringReplacer
      */
-    static replace(str: string, values: { [key: string]: string }): string {
+    export function replace(str: string, values: { [key: string]: string }): string {
         for (const key in values) {
             str = str.replace(`:${key}`, values[key])
         }
